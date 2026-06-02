@@ -1,15 +1,16 @@
-{"version": "1.1.0",
+{"version": "1.2.0",
  "packagesDir": ".lake/packages",
  "packages":
  [{"url": "https://github.com/kim-em/lp-core",
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "98669eee0fe05bcc1ed9aa2c7c7adff5d1aaf9ae",
+   "rev": "8b694db5f88c65b06714de5488edefd238185f60",
    "name": "LPCore",
    "manifestFile": "lake-manifest.json",
-   "inputRev": "98669eee0fe05bcc1ed9aa2c7c7adff5d1aaf9ae",
+   "inputRev": "8b694db5f88c65b06714de5488edefd238185f60",
    "inherited": false,
    "configFile": "lakefile.lean"}],
  "name": "LPVerify",
- "lakeDir": ".lake"}
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

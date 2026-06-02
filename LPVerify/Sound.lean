@@ -277,9 +277,9 @@ private theorem bound_combination_le_dot_q
       dualBoundCombination p d ≤
         dot (arraySub d.rowLower.toArray d.rowUpper.toArray) (evalAx p x) +
           dot (arraySub d.colLower.toArray d.colUpper.toArray) x := by
-    unfold dualBoundCombination
+    unfold dualBoundCombination loContrib hiContrib
     have hAdd := RatAux.add_le_add hRowLe hColLe
-    simpa [Rat.sub_eq_add_neg] using hAdd
+    simpa only [Rat.sub_eq_add_neg] using hAdd
   have hBilin :
       dot (arraySub d.rowLower.toArray d.rowUpper.toArray) (evalAx p x) =
     dot (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray)) x :=
@@ -460,7 +460,8 @@ theorem checkUnbounded_sound {m n : Nat} {p : Problem m n} {x ray : Vector Rat n
       exact RatAux.sub_nonneg.mpr hBaseGe
     have hFracNonneg : 0 ≤ (primalObj p x.toArray - M) / denom := by
       have hInv : 0 ≤ denom⁻¹ := Rat.le_of_lt (Rat.inv_pos.mpr hDenomPos)
-      simpa [Rat.div] using Rat.mul_nonneg hDiffNonneg hInv
+      show 0 ≤ (primalObj p x.toArray - M) * denom⁻¹
+      exact Rat.mul_nonneg hDiffNonneg hInv
     have hLamNonneg : 0 ≤ lam := by
       unfold lam
       grind

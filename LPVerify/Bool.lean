@@ -220,11 +220,11 @@ def primalObj {m n : Nat} (p : Problem m n) (x : Array Rat) : Rat :=
   dot p.c.toArray x + p.objOffset
 
 /-- Contribution of a single optional lower bound: `mult * lo` or `0`. -/
-@[inline] private def loContrib (lo : Option Rat) (mult : Rat) : Rat :=
+@[inline] def loContrib (lo : Option Rat) (mult : Rat) : Rat :=
   lo.elim 0 (mult * ·)
 
 /-- Contribution of a single optional upper bound: `mult * hi` or `0`. -/
-@[inline] private def hiContrib (hi : Option Rat) (mult : Rat) : Rat :=
+@[inline] def hiContrib (hi : Option Rat) (mult : Rat) : Rat :=
   hi.elim 0 (mult * ·)
 
 /-- The bound combination underlying `dualObj` and `boundCombinationPos`:
