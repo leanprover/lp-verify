@@ -14,7 +14,7 @@ open Lake DSL
 -/
 
 require LPCore from git "https://github.com/kim-em/lp-core" @
-  "98669eee0fe05bcc1ed9aa2c7c7adff5d1aaf9ae"
+  "8b694db5f88c65b06714de5488edefd238185f60"
 
 package LPVerify
 
