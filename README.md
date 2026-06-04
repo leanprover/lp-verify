@@ -1,6 +1,6 @@
 # LPVerify
 
-[![Lean](https://img.shields.io/badge/Lean-4.29.1-blue.svg)](./lean-toolchain)
+[![Lean](https://img.shields.io/badge/Lean-4.31.0--rc1-blue.svg)](./lean-toolchain)
 [![License](https://img.shields.io/github/license/kim-em/lp-verify.svg)](./LICENSE)
 
 Pure-Lean checker for linear programming certificates produced by
@@ -42,16 +42,18 @@ def lp : Problem 0 1 :=
     a         := #[]
     rowBounds := #v[]
     colBounds := #v[(some 0, some (-1))] }
-
--- … construct a Certificate via your favourite solver (or load
--- from JSON), feed it to verifyOutcome, and pattern-match the
--- Verified result.
 ```
 
-`verifyOutcome` returns a `Verified` value whose constructors
-(`.optimal`, `.infeasible`, `.unbounded`, `.unchecked`) carry real
-Lean soundness proofs over the original `Problem`, not just a
-status label.
+`Problem` and `Certificate` are the
+[`kim-em/lp-core`](https://github.com/kim-em/lp-core) types (re-exported
+under `Soplex`). Obtain a `Certificate` for `lp` from your solver (or
+deserialise one), then call `verifyOutcome lp cert`. It returns a
+`Verified` value whose constructors (`.optimal`, `.infeasible`,
+`.unbounded`, `.unchecked`) carry real Lean soundness proofs over the
+original `Problem`, not just a status label. For runnable end-to-end
+examples that produce and check certificates, see the meta-package
+[`kim-em/soplex`](https://github.com/kim-em/soplex); `lp-verify` itself
+stays solver-free.
 
 ## Trust model
 
@@ -87,4 +89,4 @@ directly.
 ## Licence
 
 `LPVerify` is licensed under the [Apache License 2.0](./LICENSE),
-matching the rest of the `kim-em/lean-soplex` family.
+matching the rest of the `kim-em/soplex` family.
