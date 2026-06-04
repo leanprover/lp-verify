@@ -7,8 +7,11 @@
   Soundness lemmas live in `LP.Verify.Sound`; they lift these
   `Bool` checks to the `Prop` predicates in `LP.Verify.Prop`.
 -/
+module
 
-import LPCore.Types
+public import LPCore.Types
+
+@[expose] public section
 
 namespace LP.Verify
 

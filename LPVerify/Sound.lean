@@ -12,8 +12,11 @@
   route: build `y := x + λ · ray` and use `IsRecessionRay` plus the
   `evalAx_addSmul` / `primalObj_addSmul` linearity lemmas.
 -/
+module
 
-import LPVerify.Arith
+public import LPVerify.Arith
+
+@[expose] public section
 
 namespace LP.Verify
 
@@ -37,7 +40,7 @@ private theorem range_fold_mono
       (Array.range n).foldl (fun acc i => acc + g i) 0 := by
   induction n with
   | zero =>
-      simp [Array.range]
+      simp [Array.range_eq_range']
   | succ n ih =>
       simp [Array.range_succ]
       exact RatAux.add_le_add
@@ -66,7 +69,7 @@ private theorem range_fold_add
         (Array.range n).foldl (fun acc i => acc + g i) 0 := by
   induction n with
   | zero =>
-      simp [Array.range, Rat.zero_add]
+      simp [Array.range_eq_range', Rat.zero_add]
   | succ n ih =>
       simp [Array.range_succ]
       have ih' :
@@ -84,7 +87,7 @@ private theorem range_fold_mono_sub
       (Array.range n).foldl (fun acc i => acc + h i) 0 := by
   induction n with
   | zero =>
-      simp [Array.range]
+      simp [Array.range_eq_range']
   | succ n ih =>
       simp [Array.range_succ]
       have hprev :

@@ -11,9 +11,12 @@
   the computational definition while soundness theorems reason about
   the mathematical one.
 -/
+module
 
-import LPCore.Types
-import LPVerify.Bool
+public import LPCore.Types
+public import LPVerify.Bool
+
+@[expose] public section
 
 namespace LP.Verify
 
