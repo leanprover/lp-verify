@@ -4,7 +4,7 @@ open Lake DSL
 /-! # `LPVerify` build configuration
 
   Pure-Lean LP certificate checker. No native dependencies, no
-  `moreLinkArgs`. Built on top of `kim-em/lp-core` (`LPCore.Types`
+  `moreLinkArgs`. Built on top of `leanprover/lp-core` (`LPCore.Types`
   and `LPCore.Validate`).
 
   This is the package that fulfils the verifier-only goal of
@@ -13,8 +13,8 @@ open Lake DSL
   pulls in `lp-core`) without ever touching the SoPlex C++ build.
 -/
 
-require LPCore from git "https://github.com/kim-em/lp-core" @
-  "8b694db5f88c65b06714de5488edefd238185f60"
+require LPCore from git "https://github.com/leanprover/lp-core" @
+  "70ca150585f8439a830374b5bec602d391addbc9"
 
 package LPVerify
 

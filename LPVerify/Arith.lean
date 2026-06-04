@@ -1,6 +1,6 @@
 /-
   Rat / Array arithmetic and Bool-to-Prop lemmas used by the soundness
-  proofs in `Soplex.Verify.Sound`. The verifier is Mathlib-free, so
+  proofs in `LP.Verify.Sound`. The verifier is Mathlib-free, so
   this file fills the small gaps between core Lean 4 and what the
   soundness layer needs: Rat helpers, array size/index lemmas, sparse
   bilinear identities, and the per-checker Bool→Prop bridges.
@@ -9,9 +9,9 @@
 import LPVerify.Bool
 import LPVerify.Prop
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 /-- Bridge: `v.toArray[i]!` (Array `get!` on the underlying array)
     equals `v[i]!` (Vector `get!`). Stated with the Array form on
@@ -85,8 +85,8 @@ theorem arrayEq_true_imp_eq
 /-! ## Bool-to-Prop lemmas.
 
   Each lemma is a single-direction `Bool = true → Prop fact`. The
-  Prop targets live in `Soplex.Verify.Prop`; the soundness proofs
-  in `Soplex.Verify.Sound` consume these bridges. -/
+  Prop targets live in `LP.Verify.Prop`; the soundness proofs
+  in `LP.Verify.Sound` consume these bridges. -/
 
 theorem boundCombinationPos_imp {m n : Nat} {p : Problem m n} {d : DualBundle m n}
     (h : boundCombinationPos p d = true) :
@@ -144,7 +144,7 @@ theorem dualNonnegAndZeroWhereAbsent_imp
 
 /-! ## Size lemmas for `arraySub`.
 
-  Size lemmas for sparse matrix evaluation live in `Soplex.Verify.Bool`
+  Size lemmas for sparse matrix evaluation live in `LP.Verify.Bool`
   alongside the Bool-level operations they describe. -/
 
 theorem arraySub_size_of_eq (a b : Array Rat) (h : a.size = b.size) :
@@ -1134,4 +1134,4 @@ theorem isFarkasFeasible_imp
     getElem!_pos d.colUpper j.val j.isLt] at hjZ
   exact hjZ
 
-end Soplex.Verify
+end LP.Verify

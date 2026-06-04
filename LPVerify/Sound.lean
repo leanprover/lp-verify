@@ -1,7 +1,7 @@
 /-
   Soundness theorems lifting the `Bool` checkers from
-  `Soplex.Verify.Bool` to the `Prop` predicates in
-  `Soplex.Verify.Prop`.
+  `LP.Verify.Bool` to the `Prop` predicates in
+  `LP.Verify.Prop`.
 
   Central lemma: `bound_combination_le_dot_q` — for any primal-feasible
   `x`, dual `d` (nonneg / zero-where-absent), and `q` with
@@ -15,9 +15,9 @@
 
 import LPVerify.Arith
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 private theorem isDualFeasible_imp
     {m n : Nat} {p : Problem m n} {d : DualBundle m n}
@@ -497,4 +497,4 @@ theorem checkUnbounded_sound {m n : Nat} {p : Problem m n} {x ray : Vector Rat n
     rw [hDrop]
     grind
 
-end Soplex.Verify
+end LP.Verify

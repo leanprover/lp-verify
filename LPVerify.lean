@@ -2,8 +2,8 @@
   Top-level entry point for `LPVerify` — the pure-Lean LP certificate
   checker.
 
-  Re-exported by `kim-em/soplex` through `Soplex.Verify` so existing
-  callers writing `import Soplex.Verify` keep working unchanged.
+  Re-exported by `leanprover/lp` through `LP.Verify` so existing
+  callers writing `import LP.Verify` keep working unchanged.
 -/
 
 import LPVerify.Arith

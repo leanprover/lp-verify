@@ -2,19 +2,19 @@
   User-facing verified-solve driver: the `Verified` / `VerifiedSolve`
   data types and the pure `Solution → Verified` mapping `verifyOutcome`.
 
-  Stays FFI-free logically: `Soplex.Basic` calls SoPlex and feeds the
+  Stays FFI-free logically: `LP.Basic` calls SoPlex and feeds the
   resulting `Solution` into `verifyOutcome`, so the soundness argument
   is pure Lean even though the current package layout still builds this
-  module through the main `Soplex` dependency graph.
+  module through the main `LP` dependency graph.
 -/
 
 import LPVerify.Prop
 import LPVerify.Sound
 import LPVerify.Budget
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 /-- A proof about a specific `Problem`. The problem index is **always
     the validated / normalized form**, never the user's raw input. -/
@@ -107,4 +107,4 @@ def verifyOutcome {m n : Nat} (opts : Options) (denomBudget : Option Nat)
         | _, _ => .unchecked .unbounded
   | s => .unchecked s
 
-end Soplex.Verify
+end LP.Verify

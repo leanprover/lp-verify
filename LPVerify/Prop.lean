@@ -7,7 +7,7 @@
 
   Every `Prop` here is decidable in principle — they're all built out
   of decidable predicates on `Rat` — but we keep the `Bool` view
-  separate (`Soplex.Verify.Bool`) to make sure the checker uses
+  separate (`LP.Verify.Bool`) to make sure the checker uses
   the computational definition while soundness theorems reason about
   the mathematical one.
 -/
@@ -15,9 +15,9 @@
 import LPCore.Types
 import LPVerify.Bool
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 /-! ## Predicates. -/
 
@@ -57,10 +57,10 @@ def IsUnboundedMin {m n : Nat} (p : Problem m n) : Prop :=
 
 /-! ## Prop-level dual feasibility.
 
-  Mirrors the Bool checks in `Soplex.Verify.Bool` but at the Prop
+  Mirrors the Bool checks in `LP.Verify.Bool` but at the Prop
   level so the soundness proofs can talk about them without
   unfolding `Array.all`/`arrayEq`. The Bool-to-Prop lemmas live in
-  `Soplex.Verify.Arith`. -/
+  `LP.Verify.Arith`. -/
 
 /-- Componentwise nonnegativity plus zero-where-the-matching-bound-is-
     absent. Pulled out so both `IsDualFeasible` and `IsFarkasDualFeasible`
@@ -147,4 +147,4 @@ def IsOptimal {m n : Nat} (p : Problem m n) (sense : ObjSense) (x : Array Rat) :
 def IsUnbounded {m n : Nat} (p : Problem m n) (sense : ObjSense) : Prop :=
   IsUnboundedMin (canonicalize sense p)
 
-end Soplex.Verify
+end LP.Verify

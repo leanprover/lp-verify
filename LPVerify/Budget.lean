@@ -34,9 +34,9 @@ def bitLen (q : Rat) : Nat :=
 
 end Rat
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 @[inline] private def vectorWithinBudget {k : Nat}
     (n : Nat) (xs : Vector Rat k) : Bool :=
@@ -70,4 +70,4 @@ def certificateWithinBudget {m n_ : Nat}
     && dualWithinBudget n cert.dual
     && optionVectorWithinBudget n cert.ray
 
-end Soplex.Verify
+end LP.Verify

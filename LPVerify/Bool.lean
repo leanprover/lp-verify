@@ -4,20 +4,20 @@
   All `is*` and `check*` functions are total over well-typed `Problem`
   and certificate values.
 
-  Soundness lemmas live in `Soplex.Verify.Sound`; they lift these
-  `Bool` checks to the `Prop` predicates in `Soplex.Verify.Prop`.
+  Soundness lemmas live in `LP.Verify.Sound`; they lift these
+  `Bool` checks to the `Prop` predicates in `LP.Verify.Prop`.
 -/
 
 import LPCore.Types
 
-namespace Soplex.Verify
+namespace LP.Verify
 
-open Soplex
+open LP
 
 /-! ## Sparse matrix arithmetic.
 
   Stated via `Array.foldl`, which is what `Array.foldl_induction`
-  operates on in `Soplex.Verify.Arith`.
+  operates on in `LP.Verify.Arith`.
 -/
 
 /-- Apply a single sparse entry `(r, c, v)` to the accumulator: add
@@ -298,4 +298,4 @@ def checkUnbounded {m n : Nat} (p : Problem m n) (x ray : Vector Rat n) : Bool :
   && isRecessionRay p ray
   && dot p.c.toArray ray.toArray < 0
 
-end Soplex.Verify
+end LP.Verify
