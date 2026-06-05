@@ -11,8 +11,11 @@
   core Lean are reduced by construction, so `num` and `den` can be
   read directly without an explicit `gcd` normalization step.
 -/
+module
 
-import LPCore.Types
+public import LPCore.Types
+
+@[expose] public section
 
 namespace Nat
 
@@ -38,17 +41,17 @@ namespace LP.Verify
 
 open LP
 
-@[inline] private def vectorWithinBudget {k : Nat}
+@[inline] def vectorWithinBudget {k : Nat}
     (n : Nat) (xs : Vector Rat k) : Bool :=
   xs.all (fun q => decide (q.bitLen ≤ n))
 
-@[inline] private def optionVectorWithinBudget {k : Nat}
+@[inline] def optionVectorWithinBudget {k : Nat}
     (n : Nat) (o : Option (Vector Rat k)) : Bool :=
   match o with
   | none    => true
   | some xs => vectorWithinBudget n xs
 
-@[inline] private def dualWithinBudget {m n_ : Nat}
+@[inline] def dualWithinBudget {m n_ : Nat}
     (n : Nat) (o : Option (DualBundle m n_)) : Bool :=
   match o with
   | none   => true

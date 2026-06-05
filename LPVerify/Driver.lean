@@ -7,10 +7,13 @@
   is pure Lean even though the current package layout still builds this
   module through the main `LP` dependency graph.
 -/
+module
 
-import LPVerify.Prop
-import LPVerify.Sound
-import LPVerify.Budget
+public import LPVerify.Prop
+public import LPVerify.Sound
+public import LPVerify.Budget
+
+@[expose] public section
 
 namespace LP.Verify
 
@@ -43,7 +46,7 @@ structure VerifiedSolve {m n : Nat} (sense : ObjSense) where
   `checkOptimal_sound`'s feasibility component (which is stated
   about the canonicalized LP) into the `IsFeasible normalized x`
   shape that `Verified.optimal` demands. -/
-private theorem isFeasible_canonicalize_iff {m n : Nat}
+theorem isFeasible_canonicalize_iff {m n : Nat}
     {sense : ObjSense} {p : Problem m n} {x : Array Rat} :
     IsFeasible (canonicalize sense p) x ↔ IsFeasible p x := by
   cases sense <;> exact Iff.rfl

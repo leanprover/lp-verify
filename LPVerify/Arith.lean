@@ -5,9 +5,12 @@
   soundness layer needs: Rat helpers, array size/index lemmas, sparse
   bilinear identities, and the per-checker Bool→Prop bridges.
 -/
+module
 
-import LPVerify.Bool
-import LPVerify.Prop
+public import LPVerify.Bool
+public import LPVerify.Prop
+
+@[expose] public section
 
 namespace LP.Verify
 
@@ -325,7 +328,7 @@ private theorem dot_set
 private theorem dotPrefix_comm_within
     (a b : Array Rat) :
     ∀ n, n ≤ a.size → n ≤ b.size → dotPrefix a b n = dotPrefix b a n
-  | 0, _, _ => rfl
+  | 0, _, _ => by simp [dotPrefix]
   | n + 1, hna, hnb => by
       have hna' : n ≤ a.size := by omega
       have hnb' : n ≤ b.size := by omega
@@ -395,7 +398,7 @@ private theorem dotPrefix_eq_range_fold
     ∀ n, n ≤ a.size → n ≤ b.size →
       dotPrefix a b n =
         (Array.range n).foldl (fun acc i => acc + a[i]! * b[i]!) 0
-  | 0, _, _ => rfl
+  | 0, _, _ => by simp [Array.range_eq_range', dotPrefix]
   | n + 1, hna, hnb => by
       have hna' : n ≤ a.size := by omega
       have hnb' : n ≤ b.size := by omega
@@ -451,7 +454,7 @@ private theorem range_fold_congr
   apply Rat.le_antisymm
   · induction n with
     | zero =>
-        simp [Array.range]
+        simp [Array.range_eq_range']
     | succ n ih =>
         simp [Array.range_succ]
         exact RatAux.add_le_add
@@ -459,7 +462,7 @@ private theorem range_fold_congr
           (by rw [h n (by omega)]; exact Rat.le_refl)
   · induction n with
     | zero =>
-        simp [Array.range]
+        simp [Array.range_eq_range']
     | succ n ih =>
         simp [Array.range_succ]
         exact RatAux.add_le_add
@@ -473,7 +476,7 @@ private theorem range_fold_add
         (Array.range n).foldl (fun acc i => acc + g i) 0 := by
   induction n with
   | zero =>
-      simp [Array.range, Rat.zero_add]
+      simp [Array.range_eq_range', Rat.zero_add]
   | succ n ih =>
       simp [Array.range_succ]
       have ih' :
@@ -490,7 +493,7 @@ private theorem range_fold_smul
       lam * (Array.range n).foldl (fun acc i => acc + f i) 0 := by
   induction n with
   | zero =>
-      simp [Array.range]
+      simp [Array.range_eq_range']
   | succ n ih =>
       simp [Array.range_succ]
       have ih' :
@@ -560,7 +563,7 @@ private theorem range_fold_unit_zero_before
       (fun acc j => acc + (if j = i then (1 : Rat) else 0) * a[j]!) 0 = 0 := by
   induction n with
   | zero =>
-      simp [Array.range]
+      simp [Array.range_eq_range']
   | succ n ih =>
       simp [Array.range_succ]
       have hni : n ≠ i := by omega

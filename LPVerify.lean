@@ -5,10 +5,13 @@
   Re-exported by `leanprover/lp` through `LP.Verify` so existing
   callers writing `import LP.Verify` keep working unchanged.
 -/
+module
 
-import LPVerify.Arith
-import LPVerify.Bool
-import LPVerify.Budget
-import LPVerify.Driver
-import LPVerify.Prop
-import LPVerify.Sound
+public import LPVerify.Arith
+public import LPVerify.Bool
+public import LPVerify.Budget
+public import LPVerify.Driver
+public import LPVerify.Prop
+public import LPVerify.Sound
+
+@[expose] public section
