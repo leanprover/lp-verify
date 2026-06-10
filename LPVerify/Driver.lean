@@ -2,10 +2,9 @@
   User-facing verified-solve driver: the `Verified` / `VerifiedSolve`
   data types and the pure `Solution → Verified` mapping `verifyOutcome`.
 
-  Stays FFI-free logically: `LP.Basic` calls SoPlex and feeds the
-  resulting `Solution` into `verifyOutcome`, so the soundness argument
-  is pure Lean even though the current package layout still builds this
-  module through the main `LP` dependency graph.
+  `verifyOutcome` is pure Lean. Solver backends call it after
+  producing an `LPCore.Solution`; this module has no native or
+  backend dependency of its own.
 -/
 module
 
@@ -73,7 +72,6 @@ theorem isFeasible_canonicalize_iff {m n : Nat}
 def verifyOutcome {m n : Nat} (opts : Options) (denomBudget : Option Nat)
     (normalized : Problem m n) (sol : Solution m n) :
     Verified normalized opts.sense :=
-  let pCanon := canonicalize opts.sense normalized
   let overBudget : Bool :=
     denomBudget.isSome && !certificateWithinBudget denomBudget sol.certificate
   match sol.status with
@@ -82,6 +80,7 @@ def verifyOutcome {m n : Nat} (opts : Options) (denomBudget : Option Nat)
       else
         match sol.certificate.primal, sol.certificate.dual with
         | some x, some d =>
+            let pCanon := canonicalize opts.sense normalized
             if hChk : checkOptimal pCanon x d = true then
               let ⟨hFeas, hOpt⟩ := checkOptimal_sound hChk
               .optimal x ⟨isFeasible_canonicalize_iff.mp hFeas, hOpt⟩
@@ -103,6 +102,7 @@ def verifyOutcome {m n : Nat} (opts : Options) (denomBudget : Option Nat)
       else
         match sol.certificate.primal, sol.certificate.ray with
         | some x, some r =>
+            let pCanon := canonicalize opts.sense normalized
             if hChk : checkUnbounded pCanon x r = true then
               .unbounded x r (checkUnbounded_sound hChk)
             else
