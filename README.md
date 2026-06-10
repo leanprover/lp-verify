@@ -40,22 +40,35 @@ hand them to `verifyOutcome`:
 import LPVerify
 open LP LP.Verify
 
--- A trivially infeasible LP: 0 ≤ x ≤ -1.
-def lp : Problem 0 1 :=
-  { c         := #v[1]
-    a         := #[]
-    rowBounds := #v[]
-    colBounds := #v[(some 0, some (-1))] }
+-- An infeasible LP: the row says x ≥ 1, the column bound says x ≤ 0.
+def lp : Problem 1 1 :=
+  { c         := #v[0]
+    a         := #[(0, 0, 1)]
+    rowBounds := #v[(some 1, none)]
+    colBounds := #v[(none, some 0)] }
+
+-- Farkas certificate: multiplier 1 on the row lower bound and 1 on
+-- the column upper bound combine to the contradiction 0 ≥ 1.
+def cert : Certificate 1 1 :=
+  { primal := none
+    dual   := some { rowLower := #v[1], rowUpper := #v[0]
+                     colLower := #v[0], colUpper := #v[1] }
+    ray    := none }
+
+#eval match verifyOutcome {} none lp
+    { status := .infeasible, objective := none, certificate := cert, log := "" } with
+  | .infeasible _ => "infeasible (with Lean proof)"
+  | _             => "certificate rejected"
 ```
 
 `Problem` and `Certificate` are the
 [`leanprover/lp-core`](https://github.com/leanprover/lp-core) types (re-exported
-under `LP`). Obtain a `Certificate` for `lp` from your solver (or
-deserialise one), then call `verifyOutcome lp cert`. It returns a
-`Verified` value whose constructors (`.optimal`, `.infeasible`,
-`.unbounded`, `.unchecked`) carry real Lean soundness proofs over the
-original `Problem`, not just a status label. For runnable end-to-end
-examples that produce and check certificates, see the meta-package
+under `LP`). `verifyOutcome` returns a `Verified` value whose
+constructors (`.optimal`, `.infeasible`, `.unbounded`, `.unchecked`)
+carry real Lean soundness proofs over the original `Problem`, not just
+a status label — here `.infeasible h` carries `h : IsInfeasible lp`.
+For end-to-end examples that produce and check certificates with a
+real solver, see the meta-package
 [`leanprover/lp`](https://github.com/leanprover/lp); `lp-verify` itself
 stays solver-free.
 
@@ -70,7 +83,7 @@ accepted.
 The serialisation layer between this checker and whichever external
 tool produced the certificate is the user's responsibility. If you
 want a known-good JSON wire format, see
-[`leanprover/lp-backend-soplex-json`](https://github.com/leanprover/lp-backend-soplex-json) (planned).
+[`leanprover/lp-backend-soplex-json`](https://github.com/leanprover/lp-backend-soplex-json).
 
 ## Layout
 
