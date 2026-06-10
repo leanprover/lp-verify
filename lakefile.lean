@@ -13,7 +13,7 @@ open Lake DSL
   pulls in `lp-core`) without ever touching the SoPlex C++ build.
 -/
 
-require LPCore from git "https://github.com/leanprover/lp-core" @ "54ab1470e0a7c9b6fa3cfd676500db361560db43"
+require LPCore from git "https://github.com/leanprover/lp-core" @ "96d003f40ada9c730ae9fe100716214273be651b"
 
 package LPVerify
 
@@ -22,3 +22,9 @@ lean_lib LPVerify where
   roots := #[`LPVerify]
   globs := #[`LPVerify, `LPVerify.Arith, `LPVerify.Bool, `LPVerify.Budget,
              `LPVerify.Driver, `LPVerify.Prop, `LPVerify.Sound]
+
+/-- `lake test` entry point: certificate accept/reject behavioral
+    tests against hand-constructed fixtures. -/
+@[test_driver]
+lean_exe «verify-tests» where
+  root := `LPVerifyTest.Verify
