@@ -210,7 +210,7 @@ theorem evalATySub_eq {m n : Nat} (p : Problem m n) (yL yU : Vector Rat m) :
     funext out entry
     obtain ⟨r, c, v⟩ := entry
     show (if h : c.val < out.size then
-            out.set c.val (out[c.val]! + v * (yL[r.val]! - yU[r.val]!)) h
+            out.set c.val (out[c.val]! + v * (yL[r] - yU[r])) h
           else out) =
          (if h : c.val < out.size then
             out.set c.val (out[c.val]! +
@@ -220,6 +220,8 @@ theorem evalATySub_eq {m n : Nat} (p : Problem m n) (yL yU : Vector Rat m) :
       (by rw [yL.size_toArray, yU.size_toArray])
       r.val (by rw [yL.size_toArray]; exact r.isLt)]
     simp only [Vector.toArray_getElem!]
+    rw [getElem!_pos yL r.val r.isLt, getElem!_pos yU r.val r.isLt]
+    simp only [Fin.getElem_fin]
   rw [hfun]
 
 /-! ## Sparse bilinear identity.

@@ -56,7 +56,7 @@ open LP
     (entry : Fin m × Fin n × Rat) : Array Rat :=
   let (r, c, v) := entry
   if h : c.val < out.size then
-    out.set c.val (out[c.val]! + v * (yL[r.val]! - yU[r.val]!)) h
+    out.set c.val (out[c.val]! + v * (yL[r] - yU[r])) h
   else out
 
 /-- Compute `Ax` as an `Array Rat` of length `m`. -/

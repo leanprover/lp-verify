@@ -7,9 +7,10 @@
   with its exact optimality certificate, and times `checkOptimal`
   end to end.
 
-  Two value profiles: integer data (denominator 1, cheap arithmetic,
-  so allocation behavior dominates) and fractional data (denominator
-  3, exercising `Rat` gcd normalization).
+  Two value profiles: integer data (denominator 1, so allocation is a
+  larger share of the cost) and fractional data (denominator 3,
+  exercising `Rat` gcd normalization). One synthetic profile, not a
+  general claim: `Rat` arithmetic remains dominant in both.
 
   Run: `lake exe verify-bench [N] [iters]`.
 -/
@@ -52,7 +53,7 @@ def run (label : String) (N iters : Nat) (v : Rat) : IO Unit := do
 
 def main (args : List String) : IO UInt32 := do
   let N := (args[0]?.bind (·.toNat?)).getD 2000
-  let iters := (args[1]?.bind (·.toNat?)).getD 50
+  let iters := max 1 ((args[1]?.bind (·.toNat?)).getD 50)
   run "integer data" N iters 1
   run "denominator 3" N iters 3
   return 0
