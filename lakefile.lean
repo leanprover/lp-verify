@@ -28,3 +28,8 @@ lean_lib LPVerify where
 @[test_driver]
 lean_exe «verify-tests» where
   root := `LPVerifyTest.Verify
+
+/-- `lake exe verify-bench [N] [iters]`: hot-path timing on a
+    synthetic mid-size optimality certificate (issue #4). -/
+lean_exe «verify-bench» where
+  root := `LPVerifyTest.Bench

@@ -20,4 +20,5 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - run: lean --version
       - run: lake build
+      - run: lake build verify-bench
       - run: lake test

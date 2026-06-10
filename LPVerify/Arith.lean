@@ -52,38 +52,46 @@ protected theorem sub_le_sub {a b c d : Rat} (h₁ : a ≤ b) (h₂ : d ≤ c) :
 
 end RatAux
 
-/-! ## `arrayEq` Bool-to-Prop lemma.
+/-! ## `Nat.all` / `Nat.fold` loop bridges.
 
-  `arrayEq` is the Bool-level equality check used by `isStationary`.
-  This lemma extracts a per-index Prop equality from the Bool true
-  hypothesis, which subsequent stationarity / Farkas reasoning
-  consumes. -/
+  The executable checkers loop with `Nat.all` / `Nat.fold` (compiled
+  to allocation-free tail-recursive loops via their `@[csimp]`
+  companions). These two lemmas convert the loops back to the shapes
+  the soundness layer reasons about: a bounded `∀` for `Nat.all`, and
+  the `Array.range` folds (which `range_fold_mono` and friends in
+  `LP.Verify.Sound` are stated against) for `Nat.fold`. -/
 
-/-- If `arrayEq a b = true` then `a` and `b` have the same size and
-    agree at every index. The "size" half is a separate clause so
-    callers can use it to discharge subsequent bounds-checks without
-    needing the per-index value. -/
-theorem arrayEq_true_imp_size
-    {a b : Array Rat} (h : arrayEq a b = true) : a.size = b.size := by
-  unfold arrayEq at h
-  rw [Bool.and_eq_true] at h
-  exact of_decide_eq_true h.1
+/-- `Nat.all n f = true` iff `f` holds at every index below `n`. -/
+theorem natAll_eq_true : ∀ {n : Nat} {f : (i : Nat) → i < n → Bool},
+    Nat.all n f = true ↔ ∀ i (h : i < n), f i h = true := by
+  intro n
+  induction n with
+  | zero =>
+      intro f
+      simp
+  | succ n ih =>
+      intro f
+      rw [Nat.all_succ, Bool.and_eq_true, ih]
+      constructor
+      · rintro ⟨h₁, h₂⟩ i hi
+        rcases Nat.lt_succ_iff_lt_or_eq.mp hi with h | rfl
+        · exact h₁ i h
+        · exact h₂
+      · intro h
+        exact ⟨fun i hi => h i (by omega), h n (by omega)⟩
 
-theorem arrayEq_true_imp_eq
-    {a b : Array Rat} (h : arrayEq a b = true)
-    (i : Nat) (hi : i < a.size) :
-    a[i] = b[i]'(by have := arrayEq_true_imp_size h; omega) := by
-  have hSize := arrayEq_true_imp_size h
-  unfold arrayEq at h
-  rw [Bool.and_eq_true] at h
-  obtain ⟨_, hAll⟩ := h
-  rw [Array.all_eq_true] at hAll
-  have hZipSize : (a.zip b).size = a.size := by
-    simp [Array.size_zip, hSize]
-  have hi' : i < (a.zip b).size := by simpa [hZipSize]
-  have := hAll i hi'
-  simp [Array.getElem_zip] at this
-  exact this
+/-- A `Nat.fold` whose step ignores the index bound is the matching
+    `Array.range` fold. -/
+theorem natFold_eq_range_foldl {α : Type u} (n : Nat) (step : α → Nat → α)
+    (init : α) :
+    Nat.fold n (fun i _ acc => step acc i) init =
+      (Array.range n).foldl step init := by
+  induction n with
+  | zero =>
+      simp [Array.range_eq_range']
+  | succ n ih =>
+      rw [Nat.fold_succ, ih, Array.range_succ]
+      simp
 
 /-! ## Bool-to-Prop lemmas.
 
@@ -116,7 +124,7 @@ theorem dualNonnegAndZeroWhereAbsent_imp
   unfold dualNonnegAndZeroWhereAbsent at h
   rw [Bool.and_eq_true] at h
   obtain ⟨hRow, hCol⟩ := h
-  rw [Vector.all_eq_true] at hRow hCol
+  rw [natAll_eq_true] at hRow hCol
   refine
     { row_nonneg := ?_
       col_nonneg := ?_
@@ -124,23 +132,19 @@ theorem dualNonnegAndZeroWhereAbsent_imp
       col_zero_absent := ?_ }
   · intro i
     have hi' := hRow i.val i.isLt
-    simp only [Vector.getElem_finRange] at hi'
     simp only [Bool.and_eq_true] at hi'
     exact ⟨of_decide_eq_true hi'.1.1.1, of_decide_eq_true hi'.1.1.2⟩
   · intro j
     have hj' := hCol j.val j.isLt
-    simp only [Vector.getElem_finRange] at hj'
     simp only [Bool.and_eq_true] at hj'
     exact ⟨of_decide_eq_true hj'.1.1.1, of_decide_eq_true hj'.1.1.2⟩
   · intro i
     have hi' := hRow i.val i.isLt
-    simp only [Vector.getElem_finRange] at hi'
     simp only [Bool.and_eq_true] at hi'
     exact ⟨or_not_isNone_decide_eq_true hi'.1.2,
            or_not_isNone_decide_eq_true hi'.2⟩
   · intro j
     have hj' := hCol j.val j.isLt
-    simp only [Vector.getElem_finRange] at hj'
     simp only [Bool.and_eq_true] at hj'
     exact ⟨or_not_isNone_decide_eq_true hj'.1.2,
            or_not_isNone_decide_eq_true hj'.2⟩
@@ -170,21 +174,13 @@ theorem arraySub_get!_of_eq
   rw [Array.getElem_zipWith]
   rw [← getElem!_pos a i hi, ← getElem!_pos b i hib]
 
-/-! ## Vector-lifted analogues of `arraySub` / `dot` / `evalAx` / `evalATy`.
+/-! ## Vector-lifted analogues of `dot` / `evalATy`.
 
   The proof obligations that the Array versions need (size match,
   in-range index, output-size lemma) come for free when the inputs
-  and outputs are `Vector Rat n`: sizes are part of the type. These
-  bridges connect the two views so callers can use the type-safe
-  Vector form without rewriting every soundness lemma. -/
-
-/-- `(vSub a b).toArray` agrees with `arraySub` on the underlying
-    arrays. -/
-theorem vSub_toArray {n : Nat} (a b : Vector Rat n) :
-    (vSub a b).toArray = arraySub a.toArray b.toArray := by
-  unfold vSub arraySub
-  rw [Vector.toArray_zipWith]
-  rw [if_pos (by rw [a.size_toArray, b.size_toArray])]
+  are `Vector`-typed: sizes are part of the type. These bridges
+  connect the two views so the executable checkers can use the fused
+  Vector forms without rewriting every soundness lemma. -/
 
 /-- `vDot` agrees with `dot` on the underlying arrays — the Vector
     form has no size-mismatch fallback, but on equally-sized inputs
@@ -193,7 +189,40 @@ theorem vDot_eq_dot {n : Nat} (a b : Vector Rat n) :
     vDot a b = dot a.toArray b.toArray := by
   unfold vDot dot
   rw [if_pos (by rw [a.size_toArray, b.size_toArray])]
-  rw [Vector.toArray_zipWith]
+  rw [a.size_toArray]
+
+/-- `vPrimalObj` agrees with `primalObj` on the underlying array. -/
+theorem vPrimalObj_eq_primalObj {m n : Nat} (p : Problem m n) (x : Vector Rat n) :
+    vPrimalObj p x = primalObj p x.toArray := by
+  unfold vPrimalObj primalObj
+  rw [vDot_eq_dot]
+
+/-- The fused scatter `evalATySub` agrees with `evalATy` applied to
+    the explicit difference vector. The soundness layer keeps its
+    statements in `evalATy`/`arraySub` form; this bridge lets the
+    Bool-to-Prop lemmas for `isStationary` / `isFarkasFeasible`
+    rewrite the executable form away. -/
+theorem evalATySub_eq {m n : Nat} (p : Problem m n) (yL yU : Vector Rat m) :
+    evalATySub p yL yU = evalATy p (arraySub yL.toArray yU.toArray) := by
+  unfold evalATySub evalATy
+  have hfun : applyATySub yL yU =
+      applyATy (m := m) (n := n) (arraySub yL.toArray yU.toArray) := by
+    funext out entry
+    obtain ⟨r, c, v⟩ := entry
+    show (if h : c.val < out.size then
+            out.set c.val (out[c.val]! + v * (yL[r] - yU[r])) h
+          else out) =
+         (if h : c.val < out.size then
+            out.set c.val (out[c.val]! +
+              v * (arraySub yL.toArray yU.toArray)[r.val]!) h
+          else out)
+    rw [arraySub_get!_of_eq yL.toArray yU.toArray
+      (by rw [yL.size_toArray, yU.size_toArray])
+      r.val (by rw [yL.size_toArray]; exact r.isLt)]
+    simp only [Vector.toArray_getElem!]
+    rw [getElem!_pos yL r.val r.isLt, getElem!_pos yU r.val r.isLt]
+    simp only [Fin.getElem_fin]
+  rw [hfun]
 
 /-! ## Sparse bilinear identity.
 
@@ -216,37 +245,21 @@ private def sparsePrefix {m n : Nat} (entries : Array (Fin m × Fin n × Rat))
 private def sparseBilinear {m n : Nat} (p : Problem m n) (y x : Array Rat) : Rat :=
   p.a.foldl (fun acc e => acc + e.2.2 * y[e.1.val]! * x[e.2.1.val]!) 0
 
+private theorem dotFold_eq_dotPrefix (a b : Array Rat) (k : Nat) :
+    dotFold a b k = dotPrefix a b k := by
+  induction k with
+  | zero => simp [dotFold, dotPrefix]
+  | succ k ih =>
+      unfold dotFold at ih ⊢
+      rw [Nat.fold_succ, ih]
+      rfl
+
 private theorem dot_eq_dotPrefix
     (a b : Array Rat) (h : a.size = b.size) :
     dot a b = dotPrefix a b a.size := by
   unfold dot
   rw [if_pos h]
-  have hZipSize :
-      (Array.zipWith (fun x y => x * y) a b).size = a.size := by
-    rw [Array.size_zipWith, h, Nat.min_self]
-  have hFold :
-      (Array.zipWith (fun x y => x * y) a b).foldl (fun x y => x + y) 0 =
-        dotPrefix a b (Array.zipWith (fun x y => x * y) a b).size := by
-    refine Array.foldl_induction
-      (as := Array.zipWith (fun x y => x * y) a b)
-      (motive := fun i acc => acc = dotPrefix a b i) ?_ ?_
-    · rfl
-    · intro i acc hAcc
-      rw [hAcc]
-      have hiZip : i.val < (Array.zipWith (fun x y => x * y) a b).size := i.isLt
-      have hia : i.val < a.size := by
-        simpa [hZipSize] using hiZip
-      have hib : i.val < b.size := by
-        rw [← h]
-        exact hia
-      change dotPrefix a b i.val +
-          (Array.zipWith (fun x y => x * y) a b)[i.val] =
-        dotPrefix a b (i.val + 1)
-      rw [show (Array.zipWith (fun x y => x * y) a b)[i.val] =
-          a[i.val] * b[i.val] from Array.getElem_zipWith (hi := hiZip)]
-      rw [← getElem!_pos a i.val hia, ← getElem!_pos b i.val hib]
-      rfl
-  rw [hFold, hZipSize]
+  exact dotFold_eq_dotPrefix a b a.size
 
 private theorem dotPrefix_set_within
     (y a : Array Rat) (r : Nat) (v : Rat) (hr : r < a.size)
@@ -357,35 +370,25 @@ private theorem dot_set_left
   rw [dot_set x a r v hr hSize.symm]
   rw [dot_comm a x hSize]
 
+private theorem dotPrefix_replicate_right_zero (y : Array Rat) (n : Nat) :
+    ∀ k, k ≤ n → dotPrefix y (Array.replicate n 0) k = 0
+  | 0, _ => rfl
+  | k + 1, hk => by
+      rw [show dotPrefix y (Array.replicate n 0) (k + 1) =
+            dotPrefix y (Array.replicate n 0) k +
+              y[k]! * (Array.replicate n (0 : Rat))[k]! from rfl]
+      rw [dotPrefix_replicate_right_zero y n k (by omega)]
+      rw [getElem!_pos (Array.replicate n (0 : Rat)) k
+        (by rw [Array.size_replicate]; omega)]
+      rw [Array.getElem_replicate]
+      rw [Rat.mul_zero, Rat.zero_add]
+
 private theorem dot_replicate_right_zero (y : Array Rat) (n : Nat)
     (h : y.size = n) :
     dot y (Array.replicate n 0) = 0 := by
-  unfold dot
-  rw [if_pos (by simp [h])]
-  refine Array.foldl_induction
-    (as := Array.zipWith (fun x y => x * y) y (Array.replicate n (0 : Rat)))
-    (motive := fun _ acc => acc = 0) ?_ ?_
-  · rfl
-  · intro i acc hAcc
-    rw [hAcc]
-    have hiZip : i.val < (Array.zipWith (fun x y => x * y) y
-        (Array.replicate n (0 : Rat))).size := i.isLt
-    have hiRep : i.val < (Array.replicate n (0 : Rat)).size := by
-      have hZipSize : (Array.zipWith (fun x y => x * y) y
-          (Array.replicate n (0 : Rat))).size = n := by
-        rw [Array.size_zipWith, h, Array.size_replicate, Nat.min_self]
-      have : i.val < n := by
-        exact Nat.lt_of_lt_of_le hiZip (Nat.le_of_eq hZipSize)
-      simpa using this
-    have hiY : i.val < y.size := by rw [h]; simpa using hiRep
-    change 0 + (Array.zipWith (fun x y => x * y) y
-        (Array.replicate n (0 : Rat)))[i.val] = 0
-    rw [show (Array.zipWith (fun x y => x * y) y
-        (Array.replicate n (0 : Rat)))[i.val] =
-        y[i.val] * (Array.replicate n (0 : Rat))[i.val] from
-        Array.getElem_zipWith (hi := hiZip)]
-    rw [Array.getElem_replicate (h := hiRep)]
-    rw [Rat.mul_zero, Rat.zero_add]
+  rw [dot_eq_dotPrefix y (Array.replicate n 0) (by simp [h])]
+  rw [h]
+  exact dotPrefix_replicate_right_zero y n n (Nat.le_refl _)
 
 private theorem dot_replicate_left_zero (x : Array Rat) (n : Nat)
     (h : x.size = n) :
@@ -763,60 +766,20 @@ theorem evalAx_addSmul_get!
 
 /-! ## `isStationary` Bool-to-Prop lemma.
 
-  Translates the Bool-level Vector equality into the componentwise
-  `StationarityAgainst p d p.c` Prop. The proof projects the Vector
-  equality to a bounded coordinate, then uses `arraySub_get!_of_eq`
-  only at the remaining Array-typed `evalATy`/`arraySub` boundary. -/
+  The executable check scans the fused `evalATySub` accumulator
+  coordinatewise; `evalATySub_eq` rewrites it back to the
+  `evalATy`/`arraySub` form that `StationarityAgainst` is stated
+  against. -/
 theorem isStationary_imp
     {m n : Nat} {p : Problem m n} {d : DualBundle m n}
-    (hDual : DualNonnegZeroWhereAbsent p d)
     (h : isStationary p d = true) :
     StationarityAgainst p d p.c := by
-  -- Unfold; the Bool check now reduces to a `Vector` equality.
   unfold isStationary at h
-  simp only [decide_eq_true_eq] at h
-  -- Pass to underlying `.toArray` equality (the rest of the soundness
-  -- machinery is still in Array form).
-  have hArr :
-      Array.zipWith (· + ·)
-        (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray))
-        (arraySub d.colLower.toArray d.colUpper.toArray) = p.c.toArray := by
-    have := congrArg Vector.toArray h
-    simp only [Vector.toArray_zipWith, vEvalATy_toArray, vSub_toArray] at this
-    exact this
-  -- Sizes line up by `DualNonnegZeroWhereAbsent.*_size`.
-  have hColEq : d.colLower.toArray.size = d.colUpper.toArray.size :=
-    hDual.colLower_size.trans hDual.colUpper_size.symm
-  have hAty :
-      (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray)).size = n :=
-    evalATy_size ..
-  have hZdiff : (arraySub d.colLower.toArray d.colUpper.toArray).size = n := by
-    rw [arraySub_size_of_eq _ _ hColEq]; exact hDual.colLower_size
+  rw [natAll_eq_true] at h
   intro j
-  -- Project `hArr` to index `j`.
-  have hjAty : j.val < (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray)).size := by
-    rw [hAty]; exact j.isLt
-  have hjZdiff : j.val < (arraySub d.colLower.toArray d.colUpper.toArray).size := by
-    rw [hZdiff]; exact j.isLt
-  have hjC : j.val < p.c.toArray.size := by rw [Vector.size_toArray]; exact j.isLt
-  have hjZip : j.val <
-      (Array.zipWith (· + ·)
-        (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray))
-        (arraySub d.colLower.toArray d.colUpper.toArray)).size := by
-    rw [Array.size_zipWith, hAty, hZdiff, Nat.min_self]; exact j.isLt
-  have hEqj : (Array.zipWith (· + ·)
-        (evalATy p (arraySub d.rowLower.toArray d.rowUpper.toArray))
-        (arraySub d.colLower.toArray d.colUpper.toArray))[j.val]! = p.c.toArray[j.val]! :=
-    congrArg (·[j.val]!) hArr
-  rw [getElem!_pos _ j.val hjZip, Array.getElem_zipWith] at hEqj
-  rw [← getElem!_pos _ j.val hjAty, ← getElem!_pos _ j.val hjZdiff] at hEqj
-  rw [arraySub_get!_of_eq _ _ hColEq j.val (by rw [hDual.colLower_size]; exact j.isLt)]
-    at hEqj
-  simp only [Vector.toArray_getElem!] at hEqj ⊢
-  rw [getElem!_pos d.colLower j.val j.isLt,
-    getElem!_pos d.colUpper j.val j.isLt,
-    getElem!_pos p.c j.val j.isLt] at hEqj
-  exact hEqj
+  have hj := h j.val j.isLt
+  rw [evalATySub_eq] at hj
+  simpa using hj
 
 /-- `(!o.isSome || decide P) = true ↔ (o = some _ → P)`. The Bool
     pattern used in `isRecessionRay` for the per-bound sign clauses. -/
@@ -854,18 +817,18 @@ theorem isPrimalFeasible_imp
   rw [Bool.and_eq_true] at h
   obtain ⟨hCol, hRow⟩ := h
   have hxSize' : x.toArray.size = n := x.size_toArray
-  rw [Vector.all_eq_true] at hCol hRow
+  rw [natAll_eq_true] at hCol hRow
   refine ⟨?_, ?_⟩
   · -- ColBoundsSatisfied
     refine ⟨hxSize', ?_⟩
     intro j
     have hj' := hCol j.val j.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hj'
+    simp only [Bool.and_eq_true] at hj'
     exact ⟨by simpa using geLB_imp hj'.1, by simpa using leUB_imp hj'.2⟩
   · -- RowBoundsSatisfied
     intro i
     have hi' := hRow i.val i.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hi'
+    simp only [Bool.and_eq_true] at hi'
     exact ⟨geLB_imp hi'.1, leUB_imp hi'.2⟩
 
 theorem isRecessionRay_imp
@@ -875,7 +838,7 @@ theorem isRecessionRay_imp
   unfold isRecessionRay at h
   rw [Bool.and_eq_true] at h
   obtain ⟨hCol, hRow⟩ := h
-  rw [Vector.all_eq_true] at hCol hRow
+  rw [natAll_eq_true] at hCol hRow
   refine
     { size := r.size_toArray
       col_lo_nonneg := ?_
@@ -884,19 +847,19 @@ theorem isRecessionRay_imp
       row_hi_nonpos := ?_ }
   · intro j hLo
     have hj' := hCol j.val j.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hj'
+    simp only [Bool.and_eq_true] at hj'
     simpa using or_not_isSome_decide_eq_true hj'.1 hLo
   · intro j hHi
     have hj' := hCol j.val j.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hj'
+    simp only [Bool.and_eq_true] at hj'
     simpa using or_not_isSome_decide_eq_true hj'.2 hHi
   · intro i hLo
     have hi' := hRow i.val i.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hi'
+    simp only [Bool.and_eq_true] at hi'
     exact or_not_isSome_decide_eq_true hi'.1 hLo
   · intro i hHi
     have hi' := hRow i.val i.isLt
-    simp only [Vector.getElem_finRange, Bool.and_eq_true] at hi'
+    simp only [Bool.and_eq_true] at hi'
     exact or_not_isSome_decide_eq_true hi'.2 hHi
 
 /-- `isFarkasFeasible p d = true` implies the homogeneous componentwise
@@ -911,38 +874,13 @@ theorem isFarkasFeasible_imp
   unfold isFarkasFeasible at h
   rw [Bool.and_eq_true] at h
   obtain ⟨hNonneg, hZero⟩ := h
-  have hDual := dualNonnegAndZeroWhereAbsent_imp hNonneg
-  -- `(Vector.zipWith (+) aty zdiff).all (· == 0) = true` simplifies
-  -- to a per-index Vector equality (with proof-bearing `[i]`).
-  have hZeroIdx :
-      ∀ i (_ : i < n),
-        (vEvalATy p (vSub d.rowLower d.rowUpper).toArray)[i] +
-          (vSub d.colLower d.colUpper)[i] = 0 := by
-    simpa using hZero
+  rw [natAll_eq_true] at hZero
   refine
-    { nonneg_zero_absent := hDual
+    { nonneg_zero_absent := dualNonnegAndZeroWhereAbsent_imp hNonneg
       stationarity_zero := ?_ }
   intro j
-  have hjZ := hZeroIdx j.val j.isLt
-  -- Unwrap the Vector bridges at the remaining Array boundary, then
-  -- resolve `arraySub` at index `j`.
-  have hColEq : d.colLower.toArray.size = d.colUpper.toArray.size :=
-    hDual.colLower_size.trans hDual.colUpper_size.symm
-  have hjA : j.val < (vEvalATy p (vSub d.rowLower d.rowUpper).toArray).toArray.size := by
-    rw [Vector.size_toArray]; exact j.isLt
-  have hjVS : j.val < (vSub d.colLower d.colUpper).toArray.size := by
-    rw [Vector.size_toArray]; exact j.isLt
-  rw [show (vEvalATy p (vSub d.rowLower d.rowUpper).toArray)[j.val] =
-        (vEvalATy p (vSub d.rowLower d.rowUpper).toArray).toArray[j.val]! by
-      rw [getElem!_pos _ j.val hjA]; rfl,
-     show (vSub d.colLower d.colUpper)[j.val] =
-        (vSub d.colLower d.colUpper).toArray[j.val]! by
-      rw [getElem!_pos _ j.val hjVS]; rfl] at hjZ
-  rw [vEvalATy_toArray, vSub_toArray, vSub_toArray] at hjZ
-  rw [arraySub_get!_of_eq _ _ hColEq j.val (by rw [hDual.colLower_size]; exact j.isLt)] at hjZ
-  simp only [Vector.toArray_getElem!] at hjZ
-  rw [getElem!_pos d.colLower j.val j.isLt,
-    getElem!_pos d.colUpper j.val j.isLt] at hjZ
-  exact hjZ
+  have hj := hZero j.val j.isLt
+  rw [evalATySub_eq] at hj
+  simpa using hj
 
 end LP.Verify
