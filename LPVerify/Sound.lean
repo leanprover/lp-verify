@@ -29,9 +29,8 @@ private theorem isDualFeasible_imp
   unfold isDualFeasible at h
   rw [Bool.and_eq_true] at h
   obtain ⟨hNonneg, hStatBool⟩ := h
-  have hDual := dualNonnegAndZeroWhereAbsent_imp hNonneg
-  exact { nonneg_zero_absent := hDual
-          stationarity := isStationary_imp hDual hStatBool }
+  exact { nonneg_zero_absent := dualNonnegAndZeroWhereAbsent_imp hNonneg
+          stationarity := isStationary_imp hStatBool }
 
 private theorem range_fold_mono
     (n : Nat) (f g : Nat → Rat)
@@ -281,6 +280,7 @@ private theorem bound_combination_le_dot_q
         dot (arraySub d.rowLower.toArray d.rowUpper.toArray) (evalAx p x) +
           dot (arraySub d.colLower.toArray d.colUpper.toArray) x := by
     unfold dualBoundCombination loContrib hiContrib
+    rw [natFold_eq_range_foldl, natFold_eq_range_foldl]
     have hAdd := RatAux.add_le_add hRowLe hColLe
     simpa only [Rat.sub_eq_add_neg] using hAdd
   have hBilin :
@@ -329,6 +329,7 @@ theorem checkOptimal_sound {m n : Nat} {p : Problem m n} {x : Vector Rat n} {d :
   have hFeasX := isPrimalFeasible_imp hPrimal
   have hDual := isDualFeasible_imp hDualBool
   have hEq : primalObj p x.toArray = dualObj p d := by
+    rw [← vPrimalObj_eq_primalObj]
     simpa [beq_iff_eq] using hEqBool
   refine ⟨hFeasX, hFeasX, ?_⟩
   intro y hFeasY
@@ -347,13 +348,7 @@ theorem checkInfeasible_sound {m n : Nat} {p : Problem m n} {d : DualBundle m n}
   unfold checkInfeasible at h
   rw [Bool.and_eq_true] at h
   obtain ⟨hFarkasBool, hPosBool⟩ := h
-  unfold isFarkasFeasible at hFarkasBool
-  rw [Bool.and_eq_true] at hFarkasBool
-  obtain ⟨hNonnegBool, hZeroBool⟩ := hFarkasBool
-  have hFarkas := isFarkasFeasible_imp (by
-    unfold isFarkasFeasible
-    rw [Bool.and_eq_true]
-    exact ⟨hNonnegBool, hZeroBool⟩)
+  have hFarkas := isFarkasFeasible_imp hFarkasBool
   have hPos := boundCombinationPos_imp hPosBool
   intro hExists
   obtain ⟨x, hFeasX⟩ := hExists
@@ -447,6 +442,7 @@ theorem checkUnbounded_sound {m n : Nat} {p : Problem m n} {x ray : Vector Rat n
   have hFeasX := isPrimalFeasible_imp hPrimal
   have hRay := isRecessionRay_imp hRayBool
   have hNeg : dot p.c.toArray ray.toArray < 0 := by
+    rw [← vDot_eq_dot]
     simpa using hNegBool
   refine ⟨⟨x.toArray, hFeasX⟩, ?_⟩
   intro M
