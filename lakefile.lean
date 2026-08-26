@@ -13,7 +13,7 @@ open Lake DSL
   pulls in `lp-core`) without ever touching the SoPlex C++ build.
 -/
 
-require LPCore from git "https://github.com/leanprover/lp-core" @ "f5a81cfad47fce9cb6b8d99484bb5da3ad27b645"
+require LPCore from git "https://github.com/leanprover/lp-core" @ "8b6d241bc84e54357aa6628f1b18ff795d53de7e"
 
 package LPVerify
 
